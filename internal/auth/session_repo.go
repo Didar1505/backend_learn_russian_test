@@ -8,7 +8,7 @@ import (
 )
 
 type Session struct {
-	ID               uuid.UUID  `gorm:"type:uuid;primaryKey;column:id"`
+	ID               uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey;column:id"`
 	UserID           uuid.UUID  `gorm:"type:uuid;column:user_id;index"`
 	RefreshTokenHash string     `gorm:"column:refresh_token_hash;uniqueIndex"`
 	UserAgent        *string    `gorm:"column:user_agent"`

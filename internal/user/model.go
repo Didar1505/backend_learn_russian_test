@@ -6,7 +6,7 @@ import (
 )
 
 type User struct {
-	ID              uuid.UUID  `gorm:"column:id"`
+	ID              uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey;column:id"`
 	Email           *string    `gorm:"column:email"`
 	AuthProvider    string     `gorm:"column:auth_provider"`
 	FullName        *string    `gorm:"column:full_name"`
@@ -17,5 +17,5 @@ type User struct {
 }
 
 func (User) TableName() string {
-    return "users"
+	return "users"
 }

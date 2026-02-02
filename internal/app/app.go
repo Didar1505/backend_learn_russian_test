@@ -37,7 +37,7 @@ func (a *Application) InitApp() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbPool, err := db.New(ctx, cfg.DatabaseURL)
+	dbPool, err := db.New(ctx, "postgres://admin:123@localhost:5432/learn_russian_db?sslmode=disable")
 	if err != nil {
 		log.Fatal("failed to connect")
 	}

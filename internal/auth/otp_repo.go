@@ -8,7 +8,7 @@ import (
 )
 
 type OTPCode struct {
-	ID           uuid.UUID `gorm:"type:uuid;primaryKey;column:id"`
+	ID           uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey;column:id"`
 	Email        string    `gorm:"column:email;index"`
 	CodeHash     string    `gorm:"column:code_hash"`
 	Purpose      string    `gorm:"column:purpose"`
