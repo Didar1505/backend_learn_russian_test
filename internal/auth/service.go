@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "embed"
+	"github.com/Didar1505/project_test.git/internal/mailer"
 	"github.com/Didar1505/project_test.git/internal/user"
 )
 
@@ -16,7 +18,7 @@ type Service struct {
 	users    user.Repository
 	otpRepo  OTPRepository
 	sessions SessionRepository
-	mailer   Mailer
+	mailer   mailer.Mailer
 	tokens   TokenManager
 
 	otpTTL     time.Duration
@@ -24,7 +26,10 @@ type Service struct {
 	refreshTTL time.Duration
 }
 
-func NewService(users user.Repository, otp OTPRepository, sessions SessionRepository, mailer Mailer, tokens TokenManager) *Service {
+//go:embed templates/email_otp.html
+var emailOtpTemplate string
+
+func NewService(users user.Repository, otp OTPRepository, sessions SessionRepository, mailer mailer.Mailer, tokens TokenManager) *Service {
 	return &Service{
 		users:      users,
 		otpRepo:    otp,
@@ -35,6 +40,11 @@ func NewService(users user.Repository, otp OTPRepository, sessions SessionReposi
 		accessTTL:  20 * time.Minute,
 		refreshTTL: 30 * 24 * time.Hour,
 	}
+}
+
+func builtHTMLOTP(code string) string {
+	html := strings.ReplaceAll(emailOtpTemplate, "{{CODE}}", code)
+	return html
 }
 
 func (s *Service) RequestOTP(ctx context.Context, email string) error {
@@ -49,8 +59,9 @@ func (s *Service) RequestOTP(ctx context.Context, email string) error {
 	if err := s.otpRepo.Create(ctx, email, codeHash, time.Now().UTC().Add(s.otpTTL)); err != nil {
 		return err
 	}
-
-	return s.mailer.SendOTP(ctx, email, code)
+	htmlBody := builtHTMLOTP(code)
+	textBody := "Your verification code is: " + code
+	return s.mailer.SendOTP(ctx, email, htmlBody, textBody)
 }
 
 func (s *Service) VerifyOTP(ctx context.Context, email, code, ua, ip string) (*AuthResponse, error) {

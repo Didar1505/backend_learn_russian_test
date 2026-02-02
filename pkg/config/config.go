@@ -12,11 +12,11 @@ type Config struct {
 	// RefreshSecret   string `env:"REFRESH_SECRET" env-required:"true"`
 	// RefreshTTLHours int    `env:"REFRESH_TTL_HOURS" env-required:"true"`
 
-	// SMTPHost string `env:"SMTP_HOST" env-required:"true"`
-	// SMTPPort int    `env:"SMTP_PORT" env-required:"true"`
-	// SMTPUser string `env:"SMTP_USER" env-required:"true"`
-	// SMTPPass string `env:"SMTP_PASS" env-required:"true"`
-	// SMTPFrom string `env:"SMTP_FROM" env-required:"true"`
+	SMTPHost string `env:"SMTP_HOST" env-required:"true"`
+	SMTPPort int    `env:"SMTP_PORT" env-required:"true"`
+	SMTPUser string `env:"SMTP_USER" env-required:"true"`
+	SMTPPass string `env:"SMTP_PASS" env-required:"true"`
+	SMTPFrom string `env:"SMTP_FROM" env-required:"true"`
 }
 
 func Load() (*Config, error) {

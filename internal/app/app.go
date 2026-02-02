@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/Didar1505/project_test.git/internal/auth"
+	"github.com/Didar1505/project_test.git/internal/mailer"
 	"github.com/Didar1505/project_test.git/internal/user"
 	"github.com/Didar1505/project_test.git/pkg/config"
 	"github.com/Didar1505/project_test.git/pkg/db"
@@ -37,6 +38,7 @@ func (a *Application) InitApp() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	dbPool, err := db.New(ctx, "postgres://admin:123@localhost:5432/learn_russian_db?sslmode=disable")
 	if err != nil {
 		log.Fatal("failed to connect")
@@ -57,9 +59,9 @@ func (a *Application) InitApp() {
 	userRepo := user.NewGormRepository(gormDB)
 	otpRepo := auth.NewGormOTPRepository(gormDB)
 	sessRepo := auth.NewGormSessionRepository(gormDB)
-	mailer := auth.NewDevMailer()
+	smtpMailer := mailer.New(cfg)
 
-	authService := auth.NewService(userRepo, otpRepo, sessRepo, mailer, jwtMgr)
+	authService := auth.NewService(userRepo, otpRepo, sessRepo, smtpMailer, jwtMgr)
 	authHandler := auth.NewHandler(authService)
 	
 	api:= a.r.Group("/api")
