@@ -1,4 +1,4 @@
-package auth
+package session
 
 import (
 	"context"
@@ -17,8 +17,8 @@ type Session struct {
 	CreatedAt        time.Time  `gorm:"column:created_at"`
 	RevokedAt        *time.Time `gorm:"column:revoked_at"`
 }
-
 func (Session) TableName() string { return "sessions" }
+
 
 type SessionRepository interface {
 	Create(ctx context.Context, s *Session) error

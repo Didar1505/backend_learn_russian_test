@@ -8,6 +8,9 @@ import (
 	"syscall"
 
 	"github.com/Didar1505/project_test.git/internal/auth"
+	"github.com/Didar1505/project_test.git/internal/auth/providers/jwt"
+	"github.com/Didar1505/project_test.git/internal/auth/providers/otp"
+	"github.com/Didar1505/project_test.git/internal/auth/session"
 	"github.com/Didar1505/project_test.git/internal/mailer"
 	"github.com/Didar1505/project_test.git/internal/user"
 	"github.com/Didar1505/project_test.git/pkg/config"
@@ -54,17 +57,17 @@ func (a *Application) InitApp() {
 	}
 	// logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
-	jwtMgr := auth.NewJWTManager(cfg.JWTSecret)
+	jwtMgr := jwt.NewManager(cfg.JWTSecret)
 
 	userRepo := user.NewGormRepository(gormDB)
-	otpRepo := auth.NewGormOTPRepository(gormDB)
-	sessRepo := auth.NewGormSessionRepository(gormDB)
+	otpRepo := otp.NewGormRepository(gormDB)
+	sessRepo := session.NewGormSessionRepository(gormDB)
 	smtpMailer := mailer.New(cfg)
 
 	authService := auth.NewService(userRepo, otpRepo, sessRepo, smtpMailer, jwtMgr)
 	authHandler := auth.NewHandler(authService)
-	
-	api:= a.r.Group("/api")
+
+	api := a.r.Group("/api")
 	authHandler.RegisterRoutes(api)
 
 	// protected:

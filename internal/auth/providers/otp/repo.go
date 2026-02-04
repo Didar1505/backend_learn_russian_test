@@ -1,9 +1,8 @@
-package auth
+package otp
 
 import (
 	"context"
 	"time"
-
 	"github.com/google/uuid"
 )
 
@@ -16,10 +15,9 @@ type OTPCode struct {
 	AttemptsLeft int       `gorm:"column:attempts_left"`
 	CreatedAt    time.Time `gorm:"column:created_at"`
 }
-
 func (OTPCode) TableName() string { return "otp_codes" }
 
-type OTPRepository interface {
+type Repository interface {
 	Create(ctx context.Context, email string, codeHash string, expiresAt time.Time) error
 	GetLatestValid(ctx context.Context, email string, now time.Time) (*OTPCode, error)
 	DecrementAttempts(ctx context.Context, id uuid.UUID) error

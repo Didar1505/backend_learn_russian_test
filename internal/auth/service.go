@@ -9,17 +9,22 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	_ "embed"
+
+	"github.com/Didar1505/project_test.git/internal/auth/providers/jwt"
+	"github.com/Didar1505/project_test.git/internal/auth/providers/otp"
+	"github.com/Didar1505/project_test.git/internal/auth/session"
 	"github.com/Didar1505/project_test.git/internal/mailer"
 	"github.com/Didar1505/project_test.git/internal/user"
 )
 
 type Service struct {
 	users    user.Repository
-	otpRepo  OTPRepository
-	sessions SessionRepository
+	otpRepo  otp.Repository
+	sessions session.SessionRepository
 	mailer   mailer.Mailer
-	tokens   TokenManager
+	tokens   jwt.TokenManager
 
 	otpTTL     time.Duration
 	accessTTL  time.Duration
@@ -29,7 +34,7 @@ type Service struct {
 //go:embed templates/email_otp.html
 var emailOtpTemplate string
 
-func NewService(users user.Repository, otp OTPRepository, sessions SessionRepository, mailer mailer.Mailer, tokens TokenManager) *Service {
+func NewService(users user.Repository, otp otp.Repository, sessions session.SessionRepository, mailer mailer.Mailer, tokens jwt.TokenManager) *Service {
 	return &Service{
 		users:      users,
 		otpRepo:    otp,
@@ -101,14 +106,14 @@ func (s *Service) VerifyOTP(ctx context.Context, email, code, ua, ip string) (*A
 		return nil, err
 	}
 
-	// refresh token: сохраняем хэш в sessions
+	// refresh token: СЃРѕС…СЂР°РЅСЏРµРј С…СЌС€ РІ sessions
 	refreshPlain := randomTokenHex(32)
 	refreshHash := hashString(refreshPlain)
 
 	uaStr := ua
 	ipStr := ip
 
-	sess := &Session{
+	sess := &session.Session{
 		UserID:           u.ID,
 		RefreshTokenHash: refreshHash,
 		UserAgent:        &uaStr,
@@ -128,7 +133,7 @@ func (s *Service) VerifyOTP(ctx context.Context, email, code, ua, ip string) (*A
 	}, nil
 }
 
-// Refresh — проверяем refresh, ротируем, выдаём новый access+refresh
+// Refresh вЂ” РїСЂРѕРІРµСЂСЏРµРј refresh, СЂРѕС‚РёСЂСѓРµРј, РІС‹РґР°С‘Рј РЅРѕРІС‹Р№ access+refresh
 func (s *Service) Refresh(ctx context.Context, refreshToken, ua, ip string) (*AuthResponse, error) {
 	refreshToken = strings.TrimSpace(refreshToken)
 	if refreshToken == "" {
@@ -154,7 +159,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken, ua, ip string) (*Au
 		return nil, err
 	}
 
-	// Rotation: генерим новый refresh и обновляем запись сессии
+	// Rotation: РіРµРЅРµСЂРёРј РЅРѕРІС‹Р№ refresh Рё РѕР±РЅРѕРІР»СЏРµРј Р·Р°РїРёСЃСЊ СЃРµСЃСЃРёРё
 	newRefreshPlain := randomTokenHex(32)
 	newRefreshHash := hashString(newRefreshPlain)
 	newExpires := now.Add(s.refreshTTL)
@@ -175,8 +180,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken, ua, ip string) (*Au
 	}, nil
 }
 
-
-// Logout — отзываем текущий refresh
+// Logout вЂ” РѕС‚Р·С‹РІР°РµРј С‚РµРєСѓС‰РёР№ refresh
 func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 	refreshToken = strings.TrimSpace(refreshToken)
 	if refreshToken == "" {

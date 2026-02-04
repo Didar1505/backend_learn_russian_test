@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Didar1505/project_test.git/internal/auth/providers/jwt"
 	"github.com/gin-gonic/gin"
 )
 
-func Middleware(tokens TokenManager) gin.HandlerFunc {
+func Middleware(tokens jwt.TokenManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		h := c.GetHeader("Authorization")
 		if h == "" || !strings.HasPrefix(h, "Bearer ") {

@@ -1,23 +1,24 @@
-package auth
+package otp
 
 import (
 	"context"
 	"errors"
 	"time"
-
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
-type GormOTPRepository struct {
+var ErrOTPNotFound = errors.New("otp code not found")
+
+type GormRepository struct {
 	db *gorm.DB
 }
 
-func NewGormOTPRepository(db *gorm.DB) *GormOTPRepository {
-	return &GormOTPRepository{db: db}
+func NewGormRepository(db *gorm.DB) *GormRepository {
+	return &GormRepository{db: db}
 }
 
-func (r *GormOTPRepository) Create(ctx context.Context, email string, codeHash string, expiresAt time.Time) error {
+func (r *GormRepository) Create(ctx context.Context, email string, codeHash string, expiresAt time.Time) error {
 	row := OTPCode{
 		Email:        email,
 		CodeHash:     codeHash,
@@ -28,7 +29,7 @@ func (r *GormOTPRepository) Create(ctx context.Context, email string, codeHash s
 	return r.db.WithContext(ctx).Create(&row).Error
 }
 
-func (r *GormOTPRepository) GetLatestValid(ctx context.Context, email string, now time.Time) (*OTPCode, error) {
+func (r *GormRepository) GetLatestValid(ctx context.Context, email string, now time.Time) (*OTPCode, error) {
 	var row OTPCode
 	err := r.db.WithContext(ctx).
 		Where("email = ? AND expires_at > ?", email, now).
@@ -44,7 +45,7 @@ func (r *GormOTPRepository) GetLatestValid(ctx context.Context, email string, no
 	return &row, nil
 }
 
-func (r *GormOTPRepository) DecrementAttempts(ctx context.Context, id uuid.UUID) error {
+func (r *GormRepository) DecrementAttempts(ctx context.Context, id uuid.UUID) error {
 	res := r.db.WithContext(ctx).
 		Model(&OTPCode{}).
 		Where("id = ? AND attempts_left > 0", id).
@@ -53,6 +54,6 @@ func (r *GormOTPRepository) DecrementAttempts(ctx context.Context, id uuid.UUID)
 	return res.Error
 }
 
-func (r *GormOTPRepository) DeleteByID(ctx context.Context, id uuid.UUID) error {
+func (r *GormRepository) DeleteByID(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&OTPCode{}, "id = ?", id).Error
 }

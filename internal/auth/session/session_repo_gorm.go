@@ -1,4 +1,4 @@
-package auth
+package session
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+var ErrSessionNotFound = errors.New("session_not_found_or_expired")
 
 type GormSessionRepository struct {
 	db *gorm.DB
