@@ -9,6 +9,7 @@ import (
 
 	"github.com/Didar1505/project_test.git/internal/auth"
 	"github.com/Didar1505/project_test.git/internal/auth/providers/jwt"
+	"github.com/Didar1505/project_test.git/internal/auth/providers/oauth"
 	"github.com/Didar1505/project_test.git/internal/auth/providers/otp"
 	"github.com/Didar1505/project_test.git/internal/auth/session"
 	"github.com/Didar1505/project_test.git/internal/mailer"
@@ -68,7 +69,26 @@ func (a *Application) InitApp() {
 	authHandler := auth.NewHandler(authService)
 
 	api := a.r.Group("/api")
+
+	if cfg.GoogleOAuthCredentials != "" {
+		if cfg.GoogleOAuthCookieSecret == "" {
+			log.Fatal("GOOGLE_OAUTH_COOKIE_SECRET is required for Google OAuth")
+		}
+		oauth.Setup(
+			cfg.GoogleOAuthRedirectURL,
+			cfg.GoogleOAuthCredentials,
+			[]string{"email", "profile"},
+			[]byte(cfg.GoogleOAuthCookieSecret),
+		)
+		api.Use(oauth.Session("ginoauth_google_session"))
+	}
+
 	authHandler.RegisterRoutes(api)
+
+	if cfg.GoogleOAuthCredentials != "" {
+		oauthGroup := api.Group("/auth/google")
+		authHandler.RegisterOAuthRoutes(oauthGroup)
+	}
 
 	// protected:
 	protected := api.Group("/")

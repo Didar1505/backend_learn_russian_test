@@ -17,6 +17,10 @@ type Config struct {
 	SMTPUser string `env:"SMTP_USER" env-required:"true"`
 	SMTPPass string `env:"SMTP_PASS" env-required:"true"`
 	SMTPFrom string `env:"SMTP_FROM" env-required:"true"`
+
+	GoogleOAuthCredentials  string `env:"GOOGLE_OAUTH_CREDENTIALS"`
+	GoogleOAuthRedirectURL  string `env:"GOOGLE_OAUTH_REDIRECT_URL"`
+	GoogleOAuthCookieSecret string `env:"GOOGLE_OAUTH_COOKIE_SECRET"`
 }
 
 func Load() (*Config, error) {

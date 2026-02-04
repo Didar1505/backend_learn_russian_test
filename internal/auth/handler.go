@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 
+	"github.com/Didar1505/project_test.git/internal/auth/providers/oauth"
 	"github.com/gin-gonic/gin"
 )
 
@@ -87,5 +88,6 @@ func (h *Handler) Logout(c *gin.Context) {
 		return
 	}
 
+	_ = oauth.ClearSession(c)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

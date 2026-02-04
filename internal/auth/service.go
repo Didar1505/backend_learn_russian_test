@@ -12,7 +12,6 @@ import (
 
 	_ "embed"
 
-	"github.com/Didar1505/project_test.git/internal/auth/providers/jwt"
 	"github.com/Didar1505/project_test.git/internal/auth/providers/otp"
 	"github.com/Didar1505/project_test.git/internal/auth/session"
 	"github.com/Didar1505/project_test.git/internal/mailer"
@@ -24,7 +23,7 @@ type Service struct {
 	otpRepo  otp.Repository
 	sessions session.SessionRepository
 	mailer   mailer.Mailer
-	tokens   jwt.TokenManager
+	tokens   TokenManager
 
 	otpTTL     time.Duration
 	accessTTL  time.Duration
@@ -34,7 +33,7 @@ type Service struct {
 //go:embed templates/email_otp.html
 var emailOtpTemplate string
 
-func NewService(users user.Repository, otp otp.Repository, sessions session.SessionRepository, mailer mailer.Mailer, tokens jwt.TokenManager) *Service {
+func NewService(users user.Repository, otp otp.Repository, sessions session.SessionRepository, mailer mailer.Mailer, tokens TokenManager) *Service {
 	return &Service{
 		users:      users,
 		otpRepo:    otp,
@@ -101,39 +100,9 @@ func (s *Service) VerifyOTP(ctx context.Context, email, code, ua, ip string) (*A
 		u = newUser
 	}
 
-	access, err := s.tokens.SignAccess(u.ID, s.accessTTL)
-	if err != nil {
-		return nil, err
-	}
-
-	// refresh token: СЃРѕС…СЂР°РЅСЏРµРј С…СЌС€ РІ sessions
-	refreshPlain := randomTokenHex(32)
-	refreshHash := hashString(refreshPlain)
-
-	uaStr := ua
-	ipStr := ip
-
-	sess := &session.Session{
-		UserID:           u.ID,
-		RefreshTokenHash: refreshHash,
-		UserAgent:        &uaStr,
-		IP:               &ipStr,
-		ExpiresAt:        time.Now().UTC().Add(s.refreshTTL),
-	}
-	if err := s.sessions.Create(ctx, sess); err != nil {
-		return nil, err
-	}
-
-	_ = s.users.UpdateLastLogin(ctx, u.ID)
-
-	return &AuthResponse{
-		AccessToken:  access,
-		RefreshToken: refreshPlain,
-		User:         user.UserToResponse(*u),
-	}, nil
+	return s.issueTokens(ctx, u, ua, ip)
 }
 
-// Refresh вЂ” РїСЂРѕРІРµСЂСЏРµРј refresh, СЂРѕС‚РёСЂСѓРµРј, РІС‹РґР°С‘Рј РЅРѕРІС‹Р№ access+refresh
 func (s *Service) Refresh(ctx context.Context, refreshToken, ua, ip string) (*AuthResponse, error) {
 	refreshToken = strings.TrimSpace(refreshToken)
 	if refreshToken == "" {
@@ -148,7 +117,6 @@ func (s *Service) Refresh(ctx context.Context, refreshToken, ua, ip string) (*Au
 		return nil, err
 	}
 
-	// Load user
 	u, err := s.users.GetByID(ctx, sess.UserID)
 	if err != nil {
 		return nil, err
@@ -159,7 +127,6 @@ func (s *Service) Refresh(ctx context.Context, refreshToken, ua, ip string) (*Au
 		return nil, err
 	}
 
-	// Rotation: РіРµРЅРµСЂРёРј РЅРѕРІС‹Р№ refresh Рё РѕР±РЅРѕРІР»СЏРµРј Р·Р°РїРёСЃСЊ СЃРµСЃСЃРёРё
 	newRefreshPlain := randomTokenHex(32)
 	newRefreshHash := hashString(newRefreshPlain)
 	newExpires := now.Add(s.refreshTTL)
@@ -180,7 +147,50 @@ func (s *Service) Refresh(ctx context.Context, refreshToken, ua, ip string) (*Au
 	}, nil
 }
 
-// Logout вЂ” РѕС‚Р·С‹РІР°РµРј С‚РµРєСѓС‰РёР№ refresh
+func (s *Service) LoginWithGoogle(ctx context.Context, email, fullName, subject, ua, ip string) (*AuthResponse, error) {
+	email = normalizeEmail(email)
+	if email == "" {
+		return nil, errors.New("email required")
+	}
+
+	var u *user.User
+	var err error
+
+	if subject != "" {
+		u, err = s.users.GetByProviderSubject(ctx, "google", subject)
+		if err != nil && err != user.ErrNotFound {
+			return nil, err
+		}
+	}
+
+	if u == nil {
+		u, err = s.users.GetByEmail(ctx, email)
+		if err != nil && err != user.ErrNotFound {
+			return nil, err
+		}
+	}
+
+	if u == nil {
+		newUser := &user.User{
+			Email:          &email,
+			AuthProvider:   "google",
+			NativeLanguage: "tk",
+		}
+		if fullName != "" {
+			newUser.FullName = &fullName
+		}
+		if subject != "" {
+			newUser.ProviderSubject = &subject
+		}
+		if err := s.users.Create(ctx, newUser); err != nil {
+			return nil, err
+		}
+		u = newUser
+	}
+
+	return s.issueTokens(ctx, u, ua, ip)
+}
+
 func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 	refreshToken = strings.TrimSpace(refreshToken)
 	if refreshToken == "" {
@@ -229,4 +239,36 @@ func randomTokenHex(nBytes int) string {
 func hashString(s string) string {
 	h := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(h[:])
+}
+
+func (s *Service) issueTokens(ctx context.Context, u *user.User, ua, ip string) (*AuthResponse, error) {
+	access, err := s.tokens.SignAccess(u.ID, s.accessTTL)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshPlain := randomTokenHex(32)
+	refreshHash := hashString(refreshPlain)
+
+	uaStr := ua
+	ipStr := ip
+
+	sess := &session.Session{
+		UserID:           u.ID,
+		RefreshTokenHash: refreshHash,
+		UserAgent:        &uaStr,
+		IP:               &ipStr,
+		ExpiresAt:        time.Now().UTC().Add(s.refreshTTL),
+	}
+	if err := s.sessions.Create(ctx, sess); err != nil {
+		return nil, err
+	}
+
+	_ = s.users.UpdateLastLogin(ctx, u.ID)
+
+	return &AuthResponse{
+		AccessToken:  access,
+		RefreshToken: refreshPlain,
+		User:         user.UserToResponse(*u),
+	}, nil
 }
