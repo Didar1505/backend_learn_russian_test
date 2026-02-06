@@ -30,9 +30,3 @@ type Repository interface {
 	// UpdateProfile — безопасное обновление редактируемых полей.
 	UpdateProfile(ctx context.Context, id uuid.UUID, patch ProfilePatch) (*User, error)
 }
-
-// ProfilePatch — что пользователь реально может менять (не auth_provider, не created_at).
-type ProfilePatch struct {
-	FullName       *string
-	NativeLanguage *string
-}

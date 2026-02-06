@@ -19,3 +19,8 @@ type User struct {
 func (User) TableName() string {
 	return "users"
 }
+
+type ProfilePatch struct {
+	FullName       *string
+	NativeLanguage *string
+}

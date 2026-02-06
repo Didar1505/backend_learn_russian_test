@@ -98,8 +98,6 @@ func (a *Application) InitApp() {
 	userHandler := user.NewHandler(userService)
 	userHandler.RegisterRoutes(protected)
 
-	api.Use(user.FakeAuth())
-
 	// static files
 	// a.r.Static("/media", "./media")
 }
