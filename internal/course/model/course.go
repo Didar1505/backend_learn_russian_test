@@ -14,7 +14,7 @@ type Course struct {
 	Level        string    `gorm:"size:10;not null"` // "A1", "A2", "B1"...
 	LanguageFrom string    `gorm:"size:10;not null"` // "en", "de", "kk"...
 	LanguageTo   string    `gorm:"size:10;not null"` // "ru"
-	IsPublished  bool      `gorm:"not null;default:false"`
+	IsPublished  bool      `gorm:"column:is_published;not null;default:false"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

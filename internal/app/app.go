@@ -12,12 +12,16 @@ import (
 	"github.com/Didar1505/project_test.git/internal/auth/providers/oauth"
 	"github.com/Didar1505/project_test.git/internal/auth/providers/otp"
 	"github.com/Didar1505/project_test.git/internal/auth/session"
+	"github.com/Didar1505/project_test.git/internal/course/handler"
+	"github.com/Didar1505/project_test.git/internal/course/repo"
+	"github.com/Didar1505/project_test.git/internal/course/service"
 	"github.com/Didar1505/project_test.git/internal/mailer"
 	"github.com/Didar1505/project_test.git/internal/user"
 	"github.com/Didar1505/project_test.git/pkg/config"
 	"github.com/Didar1505/project_test.git/pkg/db"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/rs/zerolog"
 
 	// "github.com/rs/zerolog"
 	"gorm.io/driver/postgres"
@@ -56,7 +60,8 @@ func (a *Application) InitApp() {
 	if err != nil {
 		log.Fatal("failed to connect gorm: ", err)
 	}
-	// logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
 
 	jwtMgr := jwt.NewManager(cfg.JWTSecret)
 
@@ -97,6 +102,24 @@ func (a *Application) InitApp() {
 	userService := user.NewService(userRepo)
 	userHandler := user.NewHandler(userService)
 	userHandler.RegisterRoutes(protected)
+
+	// COURSES
+	courseRepo := repo.NewCourseRepository(gormDB, &logger)
+	courseService := service.NewCourseService(*courseRepo)
+	courseHandler := handler.NewCourseHandler(courseService)
+	courseHandler.RegisterRoutes(api)
+
+	// MODULES
+	moduleRepo := repo.NewModuleRepository(gormDB, &logger)
+	moduleService := service.NewModuleService(*moduleRepo)
+	moduleHandler := handler.NewModuleHandler(moduleService)
+	moduleHandler.RegisterRoutes(api)
+
+	// LESSONS
+	lessonRepo := repo.NewLessonRepository(gormDB, &logger)
+	lessonService := service.NewLessonService(*lessonRepo)
+	lessonHandler := handler.NewLessonHandler(lessonService)
+	lessonHandler.RegisterRoutes(api)
 
 	// static files
 	// a.r.Static("/media", "./media")
