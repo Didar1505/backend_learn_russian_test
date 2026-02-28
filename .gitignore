@@ -1,2 +1,5 @@
 *.db
 .env
+client_secret.json
+er_diagram.svg
+.docx
