@@ -19,5 +19,5 @@ func main() {
 	// register all routes from handler
 
 	// defer log sync
-	router.Run(":8081")
+	router.Run(":8080")
 }

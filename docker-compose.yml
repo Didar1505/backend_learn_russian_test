@@ -46,6 +46,8 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    volumes:
+    - ./client_secret.json:/app/client_secret.json:ro
 
 volumes:
   pgdata:
